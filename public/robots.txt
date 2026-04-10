@@ -1,2 +1,270 @@
 User-agent: *
 Disallow:
+
+Masalah ini cukup umum di Windows saat `composer install`, dan error-nya sudah kasih petunjuk utama: file sedang “dikunci” oleh proses lain (biasanya antivirus atau Windows Search Indexer).
+
+Berikut cara mengatasinya (urut dari yang paling cepat):
+
+---
+
+## ✅ 1. Tutup proses yang mengunci file
+
+* Tutup:
+
+  * VS Code / editor lain
+  * File Explorer yang sedang buka folder project
+* Pastikan tidak ada terminal lain yang sedang akses folder itu
+
+---
+
+## ✅ 2. Hapus folder `vendor` secara manual
+
+Masuk ke folder project lalu jalankan:
+
+```powershell
+rd /s /q vendor
+```
+
+Kalau gagal:
+
+* Hapus manual lewat File Explorer
+* Kalau tetap tidak bisa → restart dulu Windows
+
+---
+
+## ✅ 3. Jalankan ulang Composer dengan mode aman
+
+```powershell
+composer install --no-cache
+```
+
+Atau:
+
+```powershell
+composer clear-cache
+composer install
+```
+
+---
+
+## ✅ 4. Matikan sementara antivirus (penting ⚠️)
+
+Error kamu spesifik menyebut ini:
+
+> "This can be due to an antivirus..."
+
+Coba:
+
+* Disable Windows Defender sementara
+* Atau tambahkan folder project ke **exclusion**
+
+Lokasi setting:
+
+* Windows Security → Virus & Threat Protection → Exclusions
+
+---
+
+## ✅ 5. Jalankan terminal sebagai Administrator
+
+Kadang permission juga jadi masalah:
+
+* Klik kanan PowerShell → **Run as Administrator**
+* Jalankan ulang:
+
+```powershell
+composer install
+```
+
+---
+
+## ✅ 6. Gunakan opsi fallback (kalau masih gagal)
+
+```powershell
+composer install --prefer-dist
+```
+
+---
+
+## 🔥 Penyebab utama (biar paham)
+
+Biasanya ini terjadi karena:
+
+* Antivirus scan file `.php` saat Composer extract
+* Windows Search Indexer indexing folder `vendor`
+* File masih di-lock oleh proses sebelumnya
+
+---
+
+## 💡 Tips biar tidak kejadian lagi
+
+* Tambahkan folder project ke exclusion antivirus
+* Jangan buka folder `vendor` saat install
+* Hindari sync tools (OneDrive, dll) di folder project
+
+---
+
+Kalau masih error, kirimkan:
+
+* Output lengkap `composer install -vvv`
+* Versi PHP (`php -v`)
+* Versi Composer (`composer -V`)
+
+Nanti saya bantu diagnose lebih dalam 👍
+
+Oke, dari log terbaru kamu—ini jelas **bukan masalah syntax lagi**, tapi **file masih dikunci sistem Windows**. Kita fokus beresin itu sampai tuntas.
+
+---
+
+# ⚠️ Masalah utama kamu
+
+Error yang sama terus muncul:
+
+> `Could not delete ... ColumnTypeGuesser.php: This can be due to an antivirus...`
+
+👉 Artinya:
+
+* File di folder `vendor` **tidak bisa dihapus**
+* Hampir pasti karena:
+
+  * Windows Defender / antivirus
+  * File Explorer / VS Code
+  * Indexing Windows
+
+---
+
+# 🔥 Fix paling ampuh (step-by-step, jangan lompat)
+
+## 1. Restart Windows dulu (penting)
+
+Ini untuk nge-release semua file lock.
+
+---
+
+## 2. Setelah nyala lagi → JANGAN buka project dulu
+
+Jangan buka:
+
+* VS Code
+* File Explorer di folder project
+
+---
+
+## 3. Matikan Windows Defender sementara
+
+Langkah:
+
+* Windows Security
+* Virus & Threat Protection
+* Manage Settings
+* **Turn OFF Real-time protection**
+
+---
+
+## 4. Hapus folder vendor secara paksa
+
+Buka PowerShell **Run as Administrator**, lalu:
+
+```powershell
+rd /s /q vendor
+```
+
+Kalau masih gagal:
+
+```powershell
+Remove-Item vendor -Recurse -Force
+```
+
+---
+
+## 5. Jalankan Composer dengan mode aman
+
+```powershell
+composer install --prefer-dist --no-cache
+```
+
+---
+
+# 💡 Kenapa `--prefer-dist` penting?
+
+Karena:
+
+* Tidak extract file terlalu banyak
+* Lebih kecil kemungkinan kena lock file
+
+---
+
+# ❗ Error lain yang kamu lakukan
+
+## ❌ `update composer`
+
+Itu salah command
+
+✔️ Yang benar:
+
+```powershell
+composer self-update
+```
+
+---
+
+## ❌ `.env.example tidak ditemukan`
+
+Ini beda masalah:
+
+Artinya project kamu:
+
+* Belum lengkap
+* Atau bukan full Laravel project
+
+Coba cek:
+
+```powershell
+dir
+```
+
+Kalau tidak ada:
+
+```
+.env.example
+```
+
+👉 kemungkinan:
+
+* Repo belum lengkap
+* Atau kamu clone project yang salah
+
+---
+
+# 🔍 Kalau masih gagal (next level fix)
+
+Coba jalankan ini:
+
+```powershell
+composer install -vvv
+```
+
+Terus kirim hasilnya ke saya.
+
+---
+
+# ⚡ Ringkasan cepat
+
+Yang harus kamu lakukan sekarang:
+
+1. Restart PC
+2. Matikan antivirus
+3. Hapus `vendor`
+4. Jalankan:
+
+   ```powershell
+   composer install --prefer-dist --no-cache
+   ```
+
+---
+
+Kalau setelah ini masih gagal, kemungkinan:
+
+* Ada process yang bandel (OneDrive / indexing)
+* Atau permission Windows bermasalah
+
+Kalau mau, saya bisa bantu cek project kamu juga (struktur foldernya 👍)

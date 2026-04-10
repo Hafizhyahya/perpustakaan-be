@@ -74,7 +74,7 @@ class BookController extends Controller
             // Upload gambar baru
             $path = $request->file('cover_image')->store('covers', 'public');
             $validated['cover_image'] = $path;
-        } 
+        }
         // ✅ Handle hapus gambar (jika kirim empty string)
         elseif ($request->has('cover_image') && $request->cover_image === '') {
             if ($book->cover_image && Storage::disk('public')->exists($book->cover_image)) {

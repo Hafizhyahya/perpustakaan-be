@@ -16,7 +16,7 @@ class DashboardController extends Controller
     public function stats()
     {
         $user = Auth::user();
-        
+
         if ($user->role === 'admin') {
             // Admin: lihat semua data perpustakaan
             return response()->json([

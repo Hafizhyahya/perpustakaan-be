@@ -18,3 +18,4 @@ class BookSeeder extends Seeder
         ]);
     }
 }
+// jalankan seeder php artisan db:seed

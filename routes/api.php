@@ -26,9 +26,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/members/{id}', [MemberController::class, 'update']);
     Route::delete('/members/{id}', [MemberController::class, 'destroy']);
 
-    // Borrowings / Transaksi
-    Route::get('/borrowings', [BorrowingController::class, 'index']);
-    Route::post('/borrowings', [BorrowingController::class, 'store']);
-    Route::post('/borrowings/for-member', [BorrowingController::class, 'storeForMember']);
-    Route::put('/borrowings/{id}/return', [BorrowingController::class, 'returnBook']);
+
+
+    // // Borrowings / Transaksi
+     Route::get('/borrowings', [BorrowingController::class, 'index']);
+     Route::post('/borrowings', [BorrowingController::class, 'store']);
+     Route::post('/borrowings/for-member', [BorrowingController::class, 'storeForMember']);
+     Route::put('/borrowings/{id}/return', [BorrowingController::class, 'returnBook']);
+     
 });
+

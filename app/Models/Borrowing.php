@@ -32,6 +32,10 @@ class Borrowing extends Model
     // Relasi ke buku
     public function book()
     {
+        //belongsTo yaitu 1 data peminjaman itu milik 1 member
         return $this->belongsTo(Book::class);
     }
 }
+
+
+

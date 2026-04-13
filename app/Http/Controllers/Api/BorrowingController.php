@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB};
 use App\Http\Controllers\Controller;
-use App\Models\{Book, Borrowing};
+use App\Models\{Book, Borrowing, Member}; // ✅ Pastikan Member model di-import
 
 class BorrowingController extends Controller
 {
@@ -45,16 +45,15 @@ class BorrowingController extends Controller
             ], 400);
         }
 
-        // Cek apakah user sudah meminjam buku ini dan belum dikembalikan
+        // ✅ Cek apakah user sudah meminjam buku ini dan belum dikembalikan
         $exists = Borrowing::where('user_id', Auth::id())
             ->where('book_id', $book->id)
             ->where('status', 'borrowed')
             ->exists();
-
         if ($exists) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda sudah meminjam buku ini'
+                'message' => 'Anda sudah meminjam buku ini dan belum dikembalikan'
             ], 400);
         }
 
@@ -80,7 +79,7 @@ class BorrowingController extends Controller
     }
 
     /**
-     * ✅ Admin meminjamkan buku untuk anggota lain (opsional - untuk fitur admin)
+     * ✅ Admin meminjamkan buku untuk anggota lain (DIPERBAIKI)
      */
     public function storeForMember(Request $request)
     {
@@ -92,7 +91,9 @@ class BorrowingController extends Controller
         ]);
 
         $book = Book::findOrFail($validated['book_id']);
+        $member = Member::findOrFail($validated['user_id']);
 
+        // ✅ 1. Cek stok buku
         if ($book->stock < 1) {
             return response()->json([
                 'success' => false,
@@ -100,11 +101,28 @@ class BorrowingController extends Controller
             ], 400);
         }
 
-        DB::transaction(function () use ($book, $validated) {
+        // ✅ 2. [FIX UTAMA] Cek apakah anggota sudah meminjam buku ini dan BELUM dikembalikan
+        $activeBorrow = Borrowing::where('user_id', $validated['user_id'])
+            ->where('book_id', $validated['book_id'])
+            ->where('status', 'borrowed') // ← Hanya cek yang statusnya masih 'borrowed'
+            ->exists();
+
+        if ($activeBorrow) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anggota ini sudah meminjam buku "' . $book->title . '" dan belum dikembalikan'
+            ], 400);
+        }
+
+        // ✅ 3. Gunakan transaction untuk keamanan data (atomik)
+        DB::transaction(function () use ($book, $validated, $member) {
+            // Kurangi stok buku
             $book->decrement('stock');
+
+            // Buat record transaksi peminjaman
             Borrowing::create([
                 'user_id'     => $validated['user_id'],
-                'book_id'     => $book->id,
+                'book_id'     => $validated['book_id'],
                 'borrow_date' => $validated['borrow_date'],
                 'return_date' => $validated['return_date'],
                 'status'      => 'borrowed',
@@ -113,20 +131,19 @@ class BorrowingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Peminjaman berhasil dicatat'
+            'message' => 'Peminjaman berhasil dicatat untuk ' . $member->name
         ], 201);
     }
 
     /**
      * ✅ Kembalikan buku - DENGAN VALIDASI KEAMANAN
-     * Hanya user yang meminjam atau admin yang boleh mengembalikan
      */
     public function returnBook(Request $request, $id)
     {
         $borrowing = Borrowing::findOrFail($id);
 
         // 🔐 VALIDASI KEAMANAN: Hanya pemilik atau admin yang bisa return
-        if ($borrowing->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if ($borrowing->user_id !== Auth::id() && Auth::user()?->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Akses ditolak'
@@ -137,7 +154,7 @@ class BorrowingController extends Controller
         if ($borrowing->status === 'returned') {
             return response()->json([
                 'success' => false,
-                'message' => 'Buku sudah dikembalikan'
+                'message' => 'Buku sudah dikembalikan sebelumnya'
             ], 400);
         }
 
@@ -146,7 +163,7 @@ class BorrowingController extends Controller
             // Update status transaksi
             $borrowing->update([
                 'status'      => 'returned',
-                'return_date' => now(), // Catat tanggal aktual pengembalian
+                'return_date' => now(),
             ]);
 
             // Tambah stok buku kembali ke inventory

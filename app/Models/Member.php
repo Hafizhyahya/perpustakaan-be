@@ -27,6 +27,9 @@ class Member extends Authenticatable
     // Relasi ke transaksi peminjaman
     public function borrowings()
     {
+        // hasMany yaitu 1 member → punya banyak peminjaman
         return $this->hasMany(Borrowing::class, 'user_id');
     }
 }
+
+//kenapa pake hasMany buat apa
